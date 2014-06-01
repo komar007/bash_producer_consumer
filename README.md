@@ -26,5 +26,5 @@ where `job_description` is a string (passed as single argument!) which describes
     ./server queue_filename nconsumers worker
     
 where:
-* `nworkers` is the number of consumers to be started
+* `nconsumers` is the number of consumers to be started,
 * `worker` is the name of worker, as described above.
