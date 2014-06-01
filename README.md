@@ -28,3 +28,38 @@ where `job_description` is a string (passed as single argument!) which describes
 where:
 * `nconsumers` is the number of consumers to be started,
 * `worker` is the name of worker, as described above.
+
+Examples
+--------
+
+### Convert many graphic files
+
+Start the server with 6 convert workers:
+
+    ./server.sh convert_queue 6 convert
+    
+Find bmp files and prepare jobs:
+
+    for f in *.bmp; do ./enqueue convert_queue $f ${f%.bmp}.png; done
+    
+*Note*: this will not work for filenames with special characters, like spaces. See the next example.
+
+### Encode many wave files to mp3
+
+Start the server with 6 lame workers:
+
+    ./server.sh music_queue 6 lame
+    
+Find wave files and prepare jobs:
+
+    find Music/ -name '*.wav' | while read file; do
+        ./enqueue.sh music_queue "\"$file\" \"${file%.wav}.mp3\"";
+    done
+    
+Each job will be the argument list to lame in the following format:
+
+    "filename.wav" "filename.mp3"
+
+The script adds double quotes to make sure that spaces will be handled correctly. There's still room for improvement - remember that the command to be executed as job is created by concatenating the `worker` argument to server with the job string. That command is then executed by `eval`, This means that in this example double quotes inside filenames will likely break everything.
+
+It might seem to be too much hassle, but this approach gives the most flexibility by allowing to run arbitrary bash commands with arbitrary arguments as jobs. You can even pass an empty string as `worker` and enqueue whole bash command to execute as jobs.
