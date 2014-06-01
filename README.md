@@ -5,21 +5,28 @@ Producer-consumer pattern implementation in bash
 
 Usage
 -----
+
 In these examples `queue_filename` is the name of a text file which will be used to keep the job queue.
 
 ### Start a consumer:
 
     ./consumer queue_filename consumer_id worker
     
-where:
+where:.
 * `consumer_id` is this consumer's unique identifier for this queue,
 * `worker` is the name of program/script which performs the job; it will be passed the job to perform using command-line arguments.
 
-### Produce a job to be performed by consumers:
+### Enqueue a job to be performed by consumers:
 
-    ./enqueue queue_filename job_description
+    ./enqueue queue_filename [arg1[ arg2][...]]
     
-where `job_description` is a string (passed as single argument!) which describes the arguments which will be passed to the worker.
+The arguments `argN` passed after `queue_filename` will become arguments to the program specified by the `worker` argument of `consumer`/`server`. Spaces and other special characters are allowed inside arguments.
+
+    ./enqueue queue_filename -- [arg1[ arg2][...]]
+
+If the first argument after `queue_filename` is `--`, all following arguments `argN` are concatenated (with spaces between them) to form the job string. This string will be later concatenated with the `worker` argument of `consumer`/`server` to form the command to be executed by `eval`. This means that both spaces inside arguments passed to `enqueue` and spaces between the arguments will be treated as argument separators when running the worker.
+
+This method of invocation can be also used to enqueue arbitrary shell commands (if the server/consumer is run with empty string as worker) - see examples.
 
 ### Start consumer server:
 
@@ -36,30 +43,27 @@ Examples
 
 Start the server with 6 convert workers:
 
-    ./server.sh convert_queue 6 convert
+    ./server convert_queue 6 convert
     
 Find bmp files and prepare jobs:
 
-    for f in *.bmp; do ./enqueue convert_queue $f ${f%.bmp}.png; done
-    
-*Note*: this will not work for filenames with special characters, like spaces. See the next example.
+    for f in *.bmp; do ./enqueue convert_queue "$f" "${f%.bmp}.png"; done
 
 ### Encode many wave files to mp3
 
 Start the server with 6 lame workers:
 
-    ./server.sh music_queue 6 lame
+    ./server music_queue 6 lame
     
 Find wave files and prepare jobs:
 
     find Music/ -name '*.wav' | while read file; do
-        ./enqueue.sh music_queue "\"$file\" \"${file%.wav}.mp3\"";
+        ./enqueue music_queue "$file" "${file%.wav}.mp3"
     done
     
-Each job will be the argument list to lame in the following format:
+### Execute arbitrary shell commands
 
-    "filename.wav" "filename.mp3"
-
-The script adds double quotes to make sure that spaces will be handled correctly. There's still room for improvement - remember that the command to be executed as job is created by concatenating the `worker` argument to server with the job string. That command is then executed by `eval`, This means that in this example double quotes inside filenames will likely break everything.
-
-It might seem to be too much hassle, but this approach gives the most flexibility by allowing to run arbitrary bash commands with arbitrary arguments as jobs. You can even pass an empty string as `worker` and enqueue whole bash command to execute as jobs.
+    ./server queue 6
+    for f in *.txt; do ./enqueue queue -- "echo extra line >> $f"; done
+    
+*Note:* this will not work well for filenames with special characters, especially spaces; it is necessary to properly handle escaping of spaces and other characters.
