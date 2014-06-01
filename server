@@ -11,7 +11,7 @@ echo -n > "$queue"
 
 pids=
 for i in `seq 1 1 $nconsumers`; do
-	"$SCDIR/consumer.sh" $queue $i $worker &
+	"$SCDIR/consumer" $queue $i $worker &
 	pids="$pids $!"
 done
 
