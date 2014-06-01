@@ -1,0 +1,53 @@
+#!/bin/bash
+
+SCDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+. $SCDIR/common.sh
+
+sigs="EXIT TERM HUP KILL"
+
+consumerid=$2
+worker=$3
+
+taskfile=/tmp/task-$consumerid-$RANDOM
+rm -f "$taskfile"
+
+should_exit=0
+
+function cleanup()
+{
+	rm -f "$taskfile"
+}
+
+function on_hup()
+{
+	should_exit=1
+}
+
+trap cleanup $sigs
+trap on_hup HUP
+
+function run()
+{
+	eval "$worker $(cat "$taskfile")"
+	rm -f "$taskfile"
+}
+
+while true; do
+	if [ $should_exit == 1 ]; then
+		exit
+	fi
+	inotifywait -e delete_self "$lock" > /dev/null 2>&1
+	if lock; then
+		rm -f "$taskfile"
+		if [ -s "$queue" ]; then
+			sed -n '1!p; 1w'"$taskfile" -i "$queue"
+		fi
+		unlock
+	fi
+	if [ -e "$taskfile" ]; then
+		run &
+		inotifywait -e delete_self "$taskfile" > /dev/null 2>&1
+	else
+		inotifywait --timeout 1 -e modify "$queue" > /dev/null 2>&1
+	fi
+done
