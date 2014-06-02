@@ -36,7 +36,7 @@ while true; do
 	if [ $should_exit == 1 ]; then
 		exit
 	fi
-	inotifywait -e delete_self "$lock" > /dev/null 2>&1
+	inotifywait -t 1 -e delete_self "$lock" > /dev/null 2>&1
 	if lock; then
 		rm -f "$taskfile"
 		if [ -s "$queue" ]; then

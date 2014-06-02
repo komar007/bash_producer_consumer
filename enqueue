@@ -4,7 +4,11 @@ SCDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 . $SCDIR/common.sh
 
 while true; do
-	inotifywait -e delete_self "$lock" > /dev/null 2>&1
+	inotifywait -t 1 -e delete_self "$lock" > /dev/null 2>&1
+	if [ $? -eq 2 ]; then
+		echo "cannot acquire lock $lock"
+		exit 1
+	fi
 	if lock; then
 		if [ "$2" == "--" ]; then
 			shift 2
