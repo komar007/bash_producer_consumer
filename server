@@ -31,6 +31,8 @@ function finish()
 
 trap finish INT
 
-while true; do
-	cat > /dev/null
+while [ -e "$queue" ]; do
+	sleep 1
 done
+
+finish
